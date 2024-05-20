@@ -23,55 +23,49 @@ COIN_HEIGHT = 40
 
 # Classe para representar o jogador
 class Player(pygame.sprite.Sprite):
-   def __init__(self, x, y, coins):
-       super().__init__()
-       self.coins = coins
-       self.index = 0
-       self.image = self.coins[self.index]
-       self.rect = self.image.get_rect()
-       self.rect.center = (x, y)
-       self.mask = pygame.mask.from_surface(self.image)
-       self.velocity = 0
-       self.jumping = False
+    def __init__(self, x, y, coins):
+        super().__init__()
+        self.coins = coins
+        self.index = 0
+        self.image = self.coins[self.index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.velocity = 0
+        self.jumping = False
 
-
-   def update(self):
-       self.velocity += GRAVITY
-       self.rect.y += self.velocity
-       if self.rect.top <= 0:
-           self.rect.top = 0
-           self.velocity = 0.4
-       if self.rect.bottom >= SCREEN_HEIGHT - 50:  # Limitar ao topo do chão 
-           self.rect.bottom = 0
-           self.velocity = 0.4
-           self.jumping = False
+    def update(self):
+        self.velocity += GRAVITY
+        self.rect.y += self.velocity
+        if self.rect.top <= 0:
+            self.rect.top = 0
+            self.velocity = 0
+        if self.rect.bottom >= SCREEN_HEIGHT - 50:  # Limitar ao topo do chão
+            self.rect.bottom = SCREEN_HEIGHT - 50
+            self.velocity = 0
+            self.jumping = False
 
 
    def flap(self):
        if not self.jumping:
            self.velocity = -FLAP_STRENGTH
 
-
-   def change_coin(self):
-       self.index = (self.index + 1) % len(self.coins)
-       self.image = self.coins[self.index]
-       self.mask = pygame.mask.from_surface(self.image)
-
+    def change_coin(self):
+        self.index = (self.index + 1) % len(self.coins)
+        self.image = self.coins[self.index]
 
 # Classe para representar os obstáculos
 class Obstacle(pygame.sprite.Sprite):
-   def __init__(self, x, y, inverted=False):
-       super().__init__()
-       self.image = pygame.image.load(OBSTACLE_IMAGE).convert_alpha()
-       self.rect = self.image.get_rect()
-       if inverted:
-           self.image = pygame.transform.flip(self.image, False, True)
-           self.rect.bottomleft = (x, y)
-       else:
-           self.rect.topleft = (x, y)
-       self.mask = pygame.mask.from_surface(self.image)
-       self.velocity = -3
-       self.passed = False  # Flag para verificar se o jogador já passou por esse obstáculo
+    def __init__(self, x, y, inverted=False):
+        super().__init__()
+        self.image = pygame.image.load(OBSTACLE_IMAGE)
+        self.rect = self.image.get_rect()
+        if inverted:
+            self.image = pygame.transform.flip(self.image, False, True)
+            self.rect.bottomleft = (x, y)
+        else:
+            self.rect.topleft = (x, y)
+        self.velocity = -3
+        self.passed = False  # Flag para verificar se o jogador já passou por esse obstáculo
 
 
    def update(self):
@@ -184,9 +178,8 @@ while True:
            player.update()
            players.draw(screen)
 
-
-           if pygame.sprite.spritecollide(player, obstacles, False, pygame.sprite.collide_mask):
-               game_active = False 
+        if pygame.sprite.spritecollide(player, obstacles, False):
+            game_active = False  
 
 
            if player.rect.bottom >= SCREEN_HEIGHT - chao_altura:
@@ -196,24 +189,19 @@ while True:
            obstacles.update()
            obstacles.draw(screen)
 
-
-           score_text = FONT.render(f"Score: {int(score)}", True, (255, 255, 255))
-           screen.blit(score_text, (20, 20))
-
+        score_text = FONT.render(f"Score: {score}", True, (255, 255, 255))
+        screen.blit(score_text, (20, 20))
 
            if score > high_score:
                high_score = score
 
+        high_score_text = FONT.render(f"High Score: {high_score}", True, (255, 255, 255))
+        screen.blit(high_score_text, (20, 60))
 
-           high_score_text = FONT.render(f"High Score: {int(high_score)}", True, (255, 255, 255))
-           screen.blit(high_score_text, (20, 60))
-
-
-           for obstacle in obstacles:
-               if obstacle.rect.right < player.rect.left and not obstacle.passed:
-                   obstacle.passed = True
-                   score += 0.5
-
+        for obstacle in obstacles:
+            if obstacle.rect.right < player.rect.left and not obstacle.passed:
+                obstacle.passed = True
+                score += 1
 
            if pygame.time.get_ticks() - obstacle_timer > 2000:
                generate_obstacle()
@@ -231,8 +219,5 @@ while True:
        screen.blit(ground, (0, SCREEN_HEIGHT - chao_altura)) 
 
 
-       pygame.display.flip()
-       clock.tick(60)
-
-
-
+    pygame.display.flip()
+    clock.tick(60)

@@ -41,13 +41,13 @@ pontuacao = 0
 
 # Função para carregar imagens
 def carregar_imagens():
-    global fundo, chao, imagem_obstaculo #Troca imagens quando atingir determinada pontuação, simulando uma troca de fase
-    if pontuacao >= 50: 
-        fundo = pygame.image.load(NOVA_IMAGEM_FUNDO).convert() #Uso do convert para colocar no formato do pygame
+    global fundo, chao, imagem_obstaculo
+    if pontuacao >= 50:
+        fundo = pygame.image.load(NOVA_IMAGEM_FUNDO).convert()
         chao = pygame.image.load(NOVA_IMAGEM_CHAO).convert_alpha()
         imagem_obstaculo = pygame.image.load(NOVA_IMAGEM_OBSTACULO).convert_alpha()
     else:
-        fundo = pygame.image.load(IMAGEM_FUNDO).convert() 
+        fundo = pygame.image.load(IMAGEM_FUNDO).convert()
         chao = pygame.image.load(IMAGEM_CHAO).convert_alpha()
         imagem_obstaculo = pygame.image.load(IMAGEM_OBSTACULO).convert_alpha()
     fundo = pygame.transform.scale(fundo, (LARGURA_TELA, ALTURA_TELA))
@@ -56,75 +56,84 @@ def carregar_imagens():
 # Carregando imagens iniciais
 carregar_imagens()
 
+# Função para calcular a velocidade dos obstáculos
+def calcular_velocidade():
+    return -3 - (pontuacao // 10)
+
+# Função para calcular o intervalo entre obstáculos
+def calcular_intervalo_obstaculos():
+    return max(500, 2000 - (pontuacao * 10))
+
 # Classe para representar o jogador + Sprite
-class Jogador(pygame.sprite.Sprite): 
+class Jogador(pygame.sprite.Sprite):
     def __init__(self, x, y, moedas):
         super().__init__()
-        self.moedas = moedas 
+        self.moedas = moedas
         self.indice = 0
-        self.image = self.moedas[self.indice] #Definindo as skins que o jogador pode assumir
+        self.image = self.moedas[self.indice]
         self.rect = self.image.get_rect()
-        self.rect.center = (x, y) 
-        self.mask = pygame.mask.from_surface(self.image) #Método para verificar colisões
-        self.velocidade = 0 #Determinada velocidade inicial (começa parado)
+        self.rect.center = (x, y)
+        self.mask = pygame.mask.from_surface(self.image)
+        self.velocidade = 0
         self.pulando = False
 
     def update(self):
-        self.velocidade += GRAVIDADE #Uso do parâmetro para simulação da gravidade
-        self.rect.y += self.velocidade #Atualização da posição (eixo y) a partir da velocidade
-        if self.rect.top <= 0: #Verificação de posição do jogador no mapa
+        self.velocidade += GRAVIDADE
+        self.rect.y += self.velocidade
+        if self.rect.top <= 0:
             self.rect.top = 0
             self.velocidade = 0.4
-        if self.rect.bottom >= ALTURA_TELA - 50:  # Limitar ao topo do chão 
+        if self.rect.bottom >= ALTURA_TELA - 50:
             self.rect.bottom = ALTURA_TELA - 50
-            self.velocidade = 0.4 #Impede que o jogador saia do mapa
+            self.velocidade = 0.4
             self.pulando = False
 
     def pular(self):
         if not self.pulando:
             self.velocidade = -FORCA_DO_PULO
-            som_pulo.play()  # Tocar som do pulo
+            som_pulo.play()
 
-    def trocar_moeda(self): #Trocar moeda utilizada e garantia de rodar todas as skins
+    def trocar_moeda(self):
         self.indice = (self.indice + 1) % len(self.moedas)
         self.image = self.moedas[self.indice]
         self.mask = pygame.mask.from_surface(self.image)
 
 # Classe para representar os obstáculos
-class Obstaculo(pygame.sprite.Sprite): #Utilização do Sprite para detecção dessas colisões
+class Obstaculo(pygame.sprite.Sprite):
     def __init__(self, x, y, invertido=False):
         super().__init__()
-        self.image = imagem_obstaculo #Definição da imagem do obstáculo
-        self.rect = self.image.get_rect() #Definição do retângulo para localização e tamanho do Sprite
+        self.image = imagem_obstaculo
+        self.rect = self.image.get_rect()
         if invertido:
             self.image = pygame.transform.flip(self.image, False, True)
             self.rect.bottomleft = (x, y)
         else:
             self.rect.topleft = (x, y)
         self.mask = pygame.mask.from_surface(self.image)
-        self.velocidade = -3
-        self.passado = False  # Flag para verificar se o jogador já passou por esse obstáculo
+        self.velocidade = calcular_velocidade()
+        self.passado = False
 
     def update(self):
-        self.rect.x += self.velocidade #Atualização frame por frame
+        self.velocidade = calcular_velocidade()
+        self.rect.x += self.velocidade
 
 # Função para gerar obstáculos
 def gerar_obstaculo():
-    y_gap = random.randint(100, 200)  # Ajuste do intervalo entre os obstáculos de cima e de baixo
-    obstaculo_cima = Obstaculo(LARGURA_TELA, y_gap - 100, invertido=True)  # Ajuste do espaço entre os obstáculos
-    obstaculo_baixo = Obstaculo(LARGURA_TELA, y_gap + 150)  # Ajuste para o obstáculo de baixo ficar abaixo do chão
+    y_gap = random.randint(100, 200)
+    obstaculo_cima = Obstaculo(LARGURA_TELA, y_gap - 100, invertido=True)
+    obstaculo_baixo = Obstaculo(LARGURA_TELA, y_gap + 150)
     obstaculos.add(obstaculo_cima)
     obstaculos.add(obstaculo_baixo)
 
 # Função para reiniciar o jogo
 def reiniciar_jogo():
-    jogador.rect.center = (100, ALTURA_TELA // 2) #Devolve o "Jogador" para sua posição inicial
-    jogador.velocidade = 0 #Reseta velocidade
-    jogador.pulando = False #"Jogador" para de pular
-    obstaculos.empty() #Ausencia de obstáculos no começo
+    jogador.rect.center = (100, ALTURA_TELA // 2)
+    jogador.velocidade = 0
+    jogador.pulando = False
+    obstaculos.empty()
     return 0
 
-# Função para exibir a tela inicial e fornecer o info de instruções
+# Função para exibir a tela inicial
 def mostrar_tela_inicial():
     tela.blit(fundo, (0, 0))
     texto_titulo = FONTE.render("FlapCoin", True, (255, 255, 255))
@@ -136,7 +145,7 @@ def mostrar_tela_inicial():
 # Função para aplicar filtro vermelho
 def aplicar_filtro_vermelho():
     filtro_vermelho = pygame.Surface((LARGURA_TELA, ALTURA_TELA))
-    filtro_vermelho.set_alpha(128)  # Valor de transparência
+    filtro_vermelho.set_alpha(128)
     filtro_vermelho.fill((255, 0, 0))
     tela.blit(filtro_vermelho, (0, 0))
 
@@ -164,13 +173,13 @@ temporizador_obstaculo = pygame.time.get_ticks()
 pygame.mixer.music.play(-1)
 
 # Loop principal do jogo
-while True: #Loop que mantém o jogo em execução 
-    for evento in pygame.event.get(): #Atualiza sobre os eventos do pygame
-        if evento.type == pygame.QUIT: #Encerramento do programa
-            pygame.quit() 
-            sys.exit() 
-        if evento.type == pygame.KEYDOWN: #Verificação de teclas
-            if evento.key == pygame.K_SPACE: #Itera sobre a atividade do jogo (está acontecendo ou não)
+while True:
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_SPACE:
                 if mostrar_tela_inicial_flag:
                     mostrar_tela_inicial_flag = False
                     jogo_ativo = True
@@ -178,10 +187,10 @@ while True: #Loop que mantém o jogo em execução
                 elif not jogo_ativo:
                     jogo_ativo = True
                     pontuacao = reiniciar_jogo()
-                    pygame.mixer.music.play(-1)  # Reiniciar a música de fundo
+                    pygame.mixer.music.play(-1)
                 else:
                     jogador.pular()
-            if evento.key == pygame.K_c and jogo_ativo:  # Altera o personagem ao pressionar "C"
+            if evento.key == pygame.K_c and jogo_ativo:
                 jogador.trocar_moeda()
 
     if mostrar_tela_inicial_flag:
@@ -194,45 +203,46 @@ while True: #Loop que mantém o jogo em execução
             jogador.update()
             jogadores.draw(tela)
 
-            if pygame.sprite.spritecollide(jogador, obstaculos, False, pygame.sprite.collide_mask): #Vericação das colisões para iteração do loop
+            if pygame.sprite.spritecollide(jogador, obstaculos, False, pygame.sprite.collide_mask):
                 jogo_ativo = False
-                som_morte.play()  # Tocar som de morte
-                pygame.mixer.music.stop()  # Parar música de fundo
+                som_morte.play()
+                pygame.mixer.music.stop()
 
             if jogador.rect.bottom >= ALTURA_TELA - ALTURA_TELA // 6:
                 jogo_ativo = False
-                som_morte.play()  # Tocar som de morte
-                pygame.mixer.music.stop()  # Parar música de fundo
+                som_morte.play()
+                pygame.mixer.music.stop()
 
-            obstaculos.update() #Determinação dos obstáculos 
+            obstaculos.update()
             obstaculos.draw(tela)
 
-            texto_pontuacao = FONTE.render(f"Pontuação: {int(pontuacao)}", True, (255, 255, 255)) #Desenho da pontuação (caixa de texto é criada)
+            texto_pontuacao = FONTE.render(f"Pontuação: {int(pontuacao)}", True, (255, 255, 255))
             tela.blit(texto_pontuacao, (20, 20))
 
-            if pontuacao > pontuacao_maxima: 
+            if pontuacao > pontuacao_maxima:
                 pontuacao_maxima = pontuacao
 
             texto_pontuacao_maxima = FONTE.render(f"Pontuação Máxima: {int(pontuacao_maxima)}", True, (255, 255, 255))
             tela.blit(texto_pontuacao_maxima, (20, 60))
 
-            for obstaculo in obstaculos: #Análise da passagem dos obstáculos
+            for obstaculo in obstaculos:
                 if obstaculo.rect.right < jogador.rect.left and not obstaculo.passado:
                     obstaculo.passado = True
                     pontuacao += 0.5
 
-            if pygame.time.get_ticks() - temporizador_obstaculo > 2000: #Permite definição do intervalo de obstáculos (2 em 2 seg)
+            intervalo_obstaculos = calcular_intervalo_obstaculos()
+            if pygame.time.get_ticks() - temporizador_obstaculo > intervalo_obstaculos:
                 gerar_obstaculo()
-                temporizador_obstaculo = pygame.time.get_ticks() #Atualiza o temporizador 
+                temporizador_obstaculo = pygame.time.get_ticks()
 
-        else: #Iterações no caso de colisões ("Game Over" definido)
+        else:
             aplicar_filtro_vermelho()
             texto_fim_de_jogo = FONTE.render("Fim de Jogo", True, (255, 255, 255))
             texto_reiniciar = FONTE.render("Pressione espaço para jogar", True, (255, 255, 255))
             tela.blit(texto_fim_de_jogo, (LARGURA_TELA // 2 - texto_fim_de_jogo.get_width() // 2, ALTURA_TELA // 3))
             tela.blit(texto_reiniciar, (LARGURA_TELA // 2 - texto_reiniciar.get_width() // 2, ALTURA_TELA // 2))
 
-        tela.blit(chao, (0, ALTURA_TELA - ALTURA_TELA // 6)) #Atualização do chão
+        tela.blit(chao, (0, ALTURA_TELA - ALTURA_TELA // 6))
 
         pygame.display.flip()
         relógio.tick(60)

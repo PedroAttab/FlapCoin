@@ -11,6 +11,9 @@ SCREEN_HEIGHT = 600
 BACKGROUND_IMAGE = "background.jpeg"
 GROUND_IMAGE = "chao.jpeg"
 OBSTACLE_IMAGE = "obstaculo.png"
+NEW_BACKGROUND_IMAGE = "new_background.jpeg"  # Novo fundo
+NEW_GROUND_IMAGE = "new_chao.jpeg"  # Novo chão
+NEW_OBSTACLE_IMAGE = "new_obstaculo.png"  # Novo obstáculo
 COIN_IMAGES = ["bitcoin.png", "saga.png", "ethereum.png"]
 FONT = pygame.font.Font(None, 40)
 GRAVITY = 0.4
@@ -28,6 +31,30 @@ pygame.mixer.init()
 flap_sound = pygame.mixer.Sound(FLAP_SOUND)
 death_sound = pygame.mixer.Sound(DEATH_SOUND)
 pygame.mixer.music.load(BACKGROUND_MUSIC)
+
+# Inicializando a tela
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("FlapCoin")
+
+# Variáveis globais
+score = 0
+
+# Função para carregar imagens
+def load_images():
+    global background, ground, obstacle_image
+    if score >= 50:
+        background = pygame.image.load(NEW_BACKGROUND_IMAGE).convert()
+        ground = pygame.image.load(NEW_GROUND_IMAGE).convert_alpha()
+        obstacle_image = pygame.image.load(NEW_OBSTACLE_IMAGE).convert_alpha()
+    else:
+        background = pygame.image.load(BACKGROUND_IMAGE).convert()
+        ground = pygame.image.load(GROUND_IMAGE).convert_alpha()
+        obstacle_image = pygame.image.load(OBSTACLE_IMAGE).convert_alpha()
+    background = pygame.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    ground = pygame.transform.scale(ground, (SCREEN_WIDTH, SCREEN_HEIGHT // 6))
+
+# Carregando imagens iniciais
+load_images()
 
 # Classe para representar o jogador
 class Player(pygame.sprite.Sprite):
@@ -49,7 +76,7 @@ class Player(pygame.sprite.Sprite):
             self.rect.top = 0
             self.velocity = 0.4
         if self.rect.bottom >= SCREEN_HEIGHT - 50:  # Limitar ao topo do chão 
-            self.rect.bottom = 0
+            self.rect.bottom = SCREEN_HEIGHT - 50
             self.velocity = 0.4
             self.jumping = False
 
@@ -67,7 +94,7 @@ class Player(pygame.sprite.Sprite):
 class Obstacle(pygame.sprite.Sprite):
     def __init__(self, x, y, inverted=False):
         super().__init__()
-        self.image = pygame.image.load(OBSTACLE_IMAGE).convert_alpha()
+        self.image = obstacle_image
         self.rect = self.image.get_rect()
         if inverted:
             self.image = pygame.transform.flip(self.image, False, True)
@@ -113,23 +140,12 @@ def apply_red_filter():
     red_filter.fill((255, 0, 0))
     screen.blit(red_filter, (0, 0))
 
-# Inicializando a tela
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("FlapCoin")
-
-# Carregando imagens
-background = pygame.image.load(BACKGROUND_IMAGE).convert()
-background = pygame.transform.scale(background, (SCREEN_WIDTH, SCREEN_HEIGHT))
-ground = pygame.image.load(GROUND_IMAGE).convert_alpha()
-chao_altura = SCREEN_HEIGHT // 6
-ground = pygame.transform.scale(ground, (SCREEN_WIDTH, chao_altura))
+# Carregando imagens das moedas
+coin_images_resized = [pygame.transform.scale(pygame.image.load(image), (COIN_HEIGHT, COIN_HEIGHT)).convert_alpha() for image in COIN_IMAGES]
 
 # Criando grupos de sprites
 players = pygame.sprite.Group()
 obstacles = pygame.sprite.Group()
-
-# Carregando imagens das moedas
-coin_images_resized = [pygame.transform.scale(pygame.image.load(image), (COIN_HEIGHT, COIN_HEIGHT)).convert_alpha() for image in COIN_IMAGES]
 
 # Criando o jogador
 player = Player(100, SCREEN_HEIGHT // 2, coin_images_resized)
@@ -137,7 +153,6 @@ players.add(player)
 
 # Definindo variáveis do jogo
 clock = pygame.time.Clock()
-score = 0
 high_score = 0
 game_active = False
 show_start_screen_flag = True
@@ -172,6 +187,7 @@ while True:
     if show_start_screen_flag:
         show_start_screen()
     else:
+        load_images()
         screen.blit(background, (0, 0))
 
         if game_active:
@@ -183,7 +199,7 @@ while True:
                 death_sound.play()  # Tocar som de morte
                 pygame.mixer.music.stop()  # Parar música de fundo
 
-            if player.rect.bottom >= SCREEN_HEIGHT - chao_altura:
+            if player.rect.bottom >= SCREEN_HEIGHT - SCREEN_HEIGHT // 6:
                 game_active = False
                 death_sound.play()  # Tocar som de morte
                 pygame.mixer.music.stop()  # Parar música de fundo
@@ -216,7 +232,7 @@ while True:
             screen.blit(game_over_text, (SCREEN_WIDTH // 2 - game_over_text.get_width() // 2, SCREEN_HEIGHT // 3))
             screen.blit(restart_text, (SCREEN_WIDTH // 2 - restart_text.get_width() // 2, SCREEN_HEIGHT // 2))
 
-        screen.blit(ground, (0, SCREEN_HEIGHT - chao_altura))
+        screen.blit(ground, (0, SCREEN_HEIGHT - SCREEN_HEIGHT // 6))
 
         pygame.display.flip()
         clock.tick(60)
